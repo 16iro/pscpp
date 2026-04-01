@@ -1,0 +1,22 @@
+# CMake 빌드 산출물
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+*.cmake
+Makefile
+
+# 컴파일된 바이너리
+*.exe
+*.out
+*.o
+*.obj
+
+# IDE
+.vscode/
+.idea/
+*.user
+
+# 기타
+.DS_Store
+Thumbs.db

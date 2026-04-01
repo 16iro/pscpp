@@ -1,0 +1,62 @@
+name: Build & Test Changed Problems
+
+on:
+  push:
+    paths:
+      - 'BOJ/*/main.cpp'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # diff HEAD~1 을 위해
+
+      - name: Install GCC & CMake
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y gcc g++ cmake
+
+      - name: Detect changed problems
+        id: changed
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E '^BOJ/[0-9]+/main\.cpp$' || true)
+          echo "files=$CHANGED" >> $GITHUB_OUTPUT
+
+      - name: Configure CMake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build & test each changed problem
+        run: |
+          FAILED=0
+          echo "${{ steps.changed.outputs.files }}" | while read -r FILE; do
+            [[ -z "$FILE" ]] && continue
+
+            PROB_DIR=$(dirname "$FILE")         # e.g. BOJ/1000
+            PLATFORM=$(echo "$PROB_DIR" | cut -d/ -f1)  # BOJ
+            PROB=$(echo "$PROB_DIR" | cut -d/ -f2)       # 1000
+            TARGET="${PLATFORM}_${PROB}"
+            BIN="build/${PLATFORM}/${PROB}/${TARGET}"
+
+            echo "::group::$TARGET"
+            cmake --build build --target "$TARGET" -- -j4
+
+            if [[ -s "$PROB_DIR/input.txt" ]]; then
+              ACTUAL=$("$BIN" < "$PROB_DIR/input.txt")
+              EXPECTED=$(cat "$PROB_DIR/expected.txt")
+              if diff <(echo "$ACTUAL") <(echo "$EXPECTED") > /dev/null; then
+                echo "✓ PASS"
+              else
+                echo "✗ FAIL"
+                echo "expected: $EXPECTED"
+                echo "actual:   $ACTUAL"
+                FAILED=1
+              fi
+            else
+              echo "⚠ input.txt empty — build-only check"
+            fi
+            echo "::endgroup::"
+          done
+          exit $FAILED
