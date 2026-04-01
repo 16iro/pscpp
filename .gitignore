@@ -17,6 +17,9 @@ Makefile
 .idea/
 *.user
 
+# 환경 설정 (머신별 경로)
+.env
+
 # 기타
 .DS_Store
 Thumbs.db

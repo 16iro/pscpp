@@ -17,12 +17,16 @@ foreach(SRC ${SOURCES})
     set(TARGET "${PLATFORM}_${PROB_NUM}")
 
     add_executable(${TARGET} ${SRC})
-    target_compile_options(${TARGET} PRIVATE
-        -O2
-        -Wall
-        -Wextra
-        -std=c++17
-    )
+
+    if(MSVC)
+        # MSVC: bits/stdc++.h 스텁 경로 추가 + MSVC 플래그
+        target_include_directories(${TARGET} PRIVATE "${CMAKE_SOURCE_DIR}")
+        target_compile_options(${TARGET} PRIVATE /O2 /W4 /utf-8)
+    else()
+        # GCC / Clang
+        target_compile_options(${TARGET} PRIVATE -O2 -Wall -Wextra -std=c++17)
+    endif()
+
     # 바이너리를 build/<PLATFORM>/<NUM>/ 에 출력
     set_target_properties(${TARGET} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${PLATFORM}/${PROB_NUM}"

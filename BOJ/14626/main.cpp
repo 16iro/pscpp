@@ -1,37 +1,45 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-// ── 타입 별칭 ────────────────────────────────────────────────
-using ll  = long long;
-using ull = unsigned long long;
-using pii = pair<int, int>;
-using pll = pair<ll, ll>;
-using vi  = vector<int>;
-using vl  = vector<ll>;
+int rmap[] = {0, 7, 4, 1, 8, 5, 2, 9, 6, 3};
 
-// ── 상수 ─────────────────────────────────────────────────────
-constexpr int  INF  = 0x3f3f3f3f;
-constexpr ll   LINF = 0x3f3f3f3f3f3f3f3fLL;
-constexpr int  MOD  = 1'000'000'007;
-
-// ── 매크로 ───────────────────────────────────────────────────
-#define all(x)  (x).begin(), (x).end()
-#define rall(x) (x).rbegin(), (x).rend()
-#define pb      push_back
-#define fi      first
-#define se      second
+int ctoi(char c) {
+    return c - '0';
+}
 
 void solve() {
-    // TODO
+    // input
+    string input;
+    cin >> input;
+
+    // calculate
+    int result = 0;
+    int c_idx = -1;
+    int sum = 0;
+    for (int idx = 0; idx < 12; idx++) {
+        bool corrupt = input[idx] == '*';
+        if (corrupt) {
+            c_idx = idx;
+        } else {
+            sum += ctoi(input[idx]) * (idx % 2 == 0 ? 1 : 3);
+        }
+    }
+    int m = ctoi(input[12]);
+    bool is_c_even = c_idx % 2 == 0;
+    if (is_c_even) {
+        result = 10 - m - (sum % 10);
+    } else {
+        int modR = 10 - m - (sum % 10);
+        result = rmap[modR];
+    }
+    cout << result;
 }
 
 int main() {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    int t = 1;
-    // cin >> t;       // 멀티 테스트케이스일 경우 주석 해제
-    while (t--) solve();
+    solve();
 
     return 0;
 }

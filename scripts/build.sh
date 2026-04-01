@@ -16,8 +16,13 @@ fi
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD="$ROOT/build"
 
-cmake -S "$ROOT" -B "$BUILD" -DCMAKE_BUILD_TYPE=Release > /dev/null 2>&1
-cmake --build "$BUILD" --target "${PLATFORM}_${PROB}" -- -j4
+if [[ "${COMPILER:-gcc}" == "msvc" ]]; then
+    cmake -S "$ROOT" -B "$BUILD" > /dev/null 2>&1
+    cmake --build "$BUILD" --target "${PLATFORM}_${PROB}" --config Release
+else
+    cmake -S "$ROOT" -B "$BUILD" -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release > /dev/null 2>&1
+    cmake --build "$BUILD" --target "${PLATFORM}_${PROB}" -- -j4
+fi
 
 BIN="$BUILD/$PLATFORM/$PROB/${PLATFORM}_${PROB}"
 [[ -f "${BIN}.exe" ]] && BIN="${BIN}.exe"

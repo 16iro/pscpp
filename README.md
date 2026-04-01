@@ -2,13 +2,19 @@
 
 ![CI](https://github.com/16iro/pscpp/actions/workflows/test.yml/badge.svg)
 
-C++17 (GCC) · CMake 기반 알고리즘 문제 풀이 및 리뷰 저장소.
+C++17 · CMake 기반 알고리즘 문제 풀이 및 리뷰 저장소.
 
 ## 구조
 
 ```
 pscpp/
-├── BOJ/<번호>/          # 문제별 풀이 (main.cpp, README.md, 테스트)
+├── BOJ/<번호>/          # 문제별 풀이
+│   ├── main.cpp         # 풀이 코드
+│   ├── README.md        # 리뷰 · 블로그 포스팅용
+│   ├── input.txt        # 예제 입력 (<<<PSCPP>>> 구분자로 케이스 구분)
+│   └── expected.txt     # 예제 출력
+├── bits/
+│   └── stdc++.h         # MSVC 호환 스텁 (GCC는 자체 제공)
 ├── templates/           # 코드 · 블로그 포스팅 템플릿
 ├── scripts/             # 문제 생성 · 테스트 · 커밋 자동화
 ├── extension/           # 브라우저 익스텐션 (BOJ 문제 폴더 자동 생성)
@@ -16,63 +22,150 @@ pscpp/
 └── notes/               # 알고리즘 개념 정리 · 재사용 스니펫
 ```
 
-## 브라우저 익스텐션 설치
+---
 
-BOJ 문제 페이지에서 클릭 한 번으로 풀이 폴더를 자동 생성한다.  
-내부적으로 [Native Messaging](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging)을 사용하므로 **네이티브 호스트 등록**이 필요하다.
+## 환경 설정
 
-### 1. 네이티브 호스트 등록
+클론 후 setup 스크립트를 **한 번만** 실행하면 `.env` 자동 생성 + git hook 등록까지 완료된다.
 
+```powershell
+# Windows
+.\setup.bat
+```
 ```bash
-# Firefox (Windows)
-native-host\install.bat --browser firefox
-
-# Firefox (macOS / Linux)
-./native-host/install.sh --browser firefox
-
-# Chrome (Windows) — 익스텐션 ID 필요, 아래 2단계 참고
-native-host\install.bat --browser chrome --extension-id <ID>
+# macOS / Linux
+./setup.sh
 ```
 
-### 2. 익스텐션 로드
+이후 `git clone` / `checkout` 시 `.env` 가 없으면 hook이 자동으로 재생성한다.  
+경로가 다르다면 생성된 `.env` 를 직접 수정.
 
-**Firefox**
-1. `about:debugging` → **이 Firefox** → **임시 부가 기능 로드**
-2. `extension/manifest.json` 선택
-
-**Chrome / Chromium**
-1. `chrome://extensions` → **개발자 모드** 활성화 → **압축 해제된 확장 프로그램 로드**
-2. `extension/` 폴더 선택
-3. 표시된 **Extension ID** 복사 후 네이티브 호스트 재등록
-
-```bash
-native-host\install.bat --browser chrome --extension-id <복사한_ID>
+```dotenv
+MSYS2_ROOT=C:\msys64   # MSYS2 설치 경로
+COMPILER=gcc           # gcc (MSYS2/GCC) | msvc (Visual Studio)
 ```
 
-### 3. 사용
+```dotenv
+MSYS2_ROOT=C:\msys64   # MSYS2 설치 경로
+COMPILER=gcc           # gcc (MSYS2/GCC) | msvc (Visual Studio)
+```
 
-1. BOJ 문제 페이지(`acmicpc.net/problem/번호`) 접속
-2. 툴바의 **pscpp helper** 아이콘 클릭
-3. 문제 정보(티어 · 태그) 확인 후 **폴더 생성** 클릭
-4. `BOJ/<번호>/` 폴더와 `main.cpp` · `README.md` · `input.txt` · `expected.txt` 자동 생성
+| `COMPILER` | 사용 툴체인 | cmake 제너레이터 |
+|------------|------------|----------------|
+| `gcc`      | MSYS2 MinGW-w64 | MinGW Makefiles |
+| `msvc`     | Visual Studio (cl.exe) | 기본값 (VS) |
 
-> **주의**: Firefox는 임시 로드이므로 재시작 시 재등록 필요.  
-> 영구 설치는 [Firefox Add-on 서명](https://extensionworkshop.com/documentation/publish/) 또는 [web-ext](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/) 사용.
+> **MSVC + `bits/stdc++.h`**: CMakeLists.txt 가 MSVC 빌드 시 자동으로 `bits/` 를 include path 에 추가하므로 코드 변경 없이 사용 가능.
 
 ---
 
 ## 빠른 시작 (CLI)
 
-```bash
-# 새 문제 시작 (익스텐션 없이 수동으로)
-./scripts/new_prob.sh BOJ 1234
+```powershell
+# 새 문제 시작
+scripts\new_prob.bat BOJ 1234
 
-# 로컬 테스트
-./scripts/test.sh BOJ 1234
+# 컴파일
+scripts\build.bat BOJ 1234
 
-# 제출 직전 커밋
-./scripts/submit.sh BOJ 1234 "접근 방법 요약"
+# 로컬 테스트 (예제 입출력 자동 검증)
+scripts\test.bat BOJ 1234
+
+# 제출 직전 커밋 (attempt #N 자동 기록)
+scripts\submit.bat BOJ 1234 "접근 방법 요약"
 ```
+
+Unix (macOS / Linux):
+```bash
+./scripts/new_prob.sh BOJ 1234
+./scripts/build.sh    BOJ 1234
+./scripts/test.sh     BOJ 1234
+./scripts/submit.sh   BOJ 1234 "접근 방법 요약"
+```
+
+### 예제 파일 형식
+
+예제가 여러 개인 경우 `<<<PSCPP>>>` 구분자로 통합 관리:
+
+```
+# input.txt
+1 2
+<<<PSCPP>>>
+100 200
+
+# expected.txt
+3
+<<<PSCPP>>>
+300
+```
+
+`test.bat` / `test.sh` 가 케이스별로 분리해 실행하고 결과를 개별 보고.
+
+---
+
+## 브라우저 익스텐션
+
+BOJ 문제 페이지에서 클릭 한 번으로 풀이 폴더를 자동 생성.  
+[Native Messaging](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Native_messaging) 기반으로 로컬 파일시스템과 통신.
+
+### 설치
+
+**1. 네이티브 호스트 등록**
+
+```powershell
+# Firefox (Windows)
+native-host\install.bat --browser firefox
+
+# Chrome (Windows) — 익스텐션 ID 필요, 아래 2단계 후 재실행
+native-host\install.bat --browser chrome --extension-id <ID>
+```
+
+```bash
+# Firefox (macOS / Linux)
+./native-host/install.sh --browser firefox
+```
+
+**2. 익스텐션 로드**
+
+| 브라우저 | 방법 |
+|---------|------|
+| Firefox | `about:debugging` → 이 Firefox → 임시 부가 기능 로드 → `extension/manifest.json` |
+| Chrome  | `chrome://extensions` → 개발자 모드 → 압축 해제된 확장 프로그램 로드 → `extension/` |
+
+Chrome은 표시된 Extension ID를 복사 후 네이티브 호스트 재등록 필요.
+
+### 사용
+
+1. `acmicpc.net/problem/<번호>` 접속
+2. 툴바의 **pscpp helper** 클릭
+3. 문제 정보(티어 · 태그 · 예제 수) 확인
+4. **폴더 생성** 클릭 → `BOJ/<번호>/` 자동 생성, 예제 입출력 자동 입력
+5. 폴더가 이미 있으면 예제만 갱신 / **초기화 토글** ON 시 전체 재생성
+
+> Firefox는 임시 로드이므로 재시작 시 재등록 필요.  
+> 영구 설치: [web-ext](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/) 참고.
+
+---
+
+## 커밋 전략
+
+`submit.bat` 은 제출 직전 스냅샷을 자동 커밋:
+
+```
+BOJ/1234: attempt #1 - brute force O(n^2)
+BOJ/1234: attempt #2 - optimize with BIT O(n log n)  ← AC
+```
+
+attempt 번호는 해당 문제 폴더의 커밋 수에서 자동 계산.
+
+---
+
+## CI (GitHub Actions)
+
+`BOJ/*/main.cpp` 변경 push 시 변경된 문제만 빌드 + 예제 diff 자동 검증.  
+결과는 상단 배지 또는 Actions 탭에서 확인.
+
+---
 
 ## 진행 현황
 
