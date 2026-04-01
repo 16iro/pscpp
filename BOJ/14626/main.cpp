@@ -22,14 +22,15 @@ void solve() {
             c_idx = idx;
         } else {
             sum += ctoi(input[idx]) * (idx % 2 == 0 ? 1 : 3);
+            sum %= 10;
         }
     }
     int m = ctoi(input[12]);
     bool is_c_even = c_idx % 2 == 0;
     if (is_c_even) {
-        result = 10 - m - (sum % 10);
+        result = (10 - (m + sum) % 10) % 10;
     } else {
-        int modR = 10 - m - (sum % 10);
+        int modR = (10 - (m + sum) % 10) % 10;
         result = rmap[modR];
     }
     cout << result;
