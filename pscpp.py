@@ -16,6 +16,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import tempfile
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SEP  = '<<<PSCPP>>>'
@@ -56,7 +57,10 @@ def cmake_configure(build_dir: str, env: dict) -> None:
         if is_windows():
             args += ['-G', 'MinGW Makefiles']
         args += ['-DCMAKE_BUILD_TYPE=Release']
-    subprocess.run(args, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    result = subprocess.run(args, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(result.stderr or result.stdout)
+        raise SystemExit(f'cmake configure 실패 (exit {result.returncode})')
 
 
 def cmake_build(build_dir: str, target: str, env: dict) -> None:
@@ -192,12 +196,30 @@ def cmd_test(plat: str, prob: str, env: dict) -> None:
 
     passed = failed = 0
     for i, (inp, exp) in enumerate(zip(inputs, expecteds), 1):
-        result = subprocess.run(
-            [binary],
-            input=inp.strip() + '\n',
-            capture_output=True, text=True, encoding='utf-8',
-        )
-        actual = result.stdout.strip()
+        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.in') as f:
+            f.write((inp.strip() + '\n').encode('utf-8'))
+            tmp_in_path = f.name
+        tmp_out_path = tmp_in_path + '.out'
+
+        # MinGW 바이너리 실행 시 DLL 경로 보장
+        run_env = os.environ.copy()
+        if is_windows() and env.get('COMPILER', 'gcc') != 'msvc':
+            mingw_bin = os.path.join(env.get('MSYS2_ROOT', r'C:\msys64'), 'mingw64', 'bin')
+            run_env['PATH'] = mingw_bin + os.pathsep + run_env.get('PATH', '')
+
+        try:
+            with open(tmp_in_path, 'rb') as sin, open(tmp_out_path, 'wb') as sout:
+                subprocess.run([binary], stdin=sin, stdout=sout,
+                               stderr=subprocess.DEVNULL, env=run_env, check=False)
+            if os.path.exists(tmp_out_path):
+                with open(tmp_out_path, 'rb') as f:
+                    actual = f.read().decode('utf-8', errors='replace').strip()
+            else:
+                actual = ''
+        finally:
+            os.unlink(tmp_in_path)
+            if os.path.exists(tmp_out_path):
+                os.unlink(tmp_out_path)
         expect = exp.strip()
 
         if actual == expect:

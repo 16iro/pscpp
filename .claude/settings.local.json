@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(C:/msys64/mingw64/bin/g++ --version)",
+      "Bash(C:/msys64/mingw64/bin/g++ -std=c++17 -v \"d:/.github/pscpp/BOJ/14626/main.cpp\" -o nul)",
+      "Bash(C:/msys64/mingw64/bin/g++ -std=c++17 \"d:/.github/pscpp/BOJ/14626/main.cpp\" -o \"d:/tmp/test\")",
+      "Bash(python3 -c ':*)"
+    ]
+  }
+}
