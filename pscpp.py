@@ -265,7 +265,11 @@ def cmd_submit(plat: str, prob: str, message: str) -> None:
         ['git', '-C', ROOT, 'diff', '--quiet', '--cached', 'HEAD', '--', rel_dir],
         capture_output=True,
     )
-    if diff.returncode == 0 and diff_cached.returncode == 0:
+    untracked = subprocess.run(
+        ['git', '-C', ROOT, 'ls-files', '--others', '--exclude-standard', '--', rel_dir],
+        capture_output=True, text=True,
+    )
+    if diff.returncode == 0 and diff_cached.returncode == 0 and not untracked.stdout.strip():
         print(f'변경사항 없음: {rel_dir}')
         return
 
@@ -284,7 +288,8 @@ def cmd_submit(plat: str, prob: str, message: str) -> None:
                if os.path.exists(os.path.join(ROOT, rel_dir, f))]
     subprocess.run(['git', '-C', ROOT, 'add'] + targets, check=True)
     subprocess.run(['git', '-C', ROOT, 'commit', '-m', commit_msg], check=True, capture_output=True)
-    print(f'\nCommitted: {commit_msg}')
+    subprocess.run(['git', '-C', ROOT, 'push'], check=True)
+    print(f'\nCommitted & pushed: {commit_msg}')
     print('→ BOJ에 직접 제출하세요.')
 
 
