@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      width: 280px;
+      padding: 16px;
+      background: #1e1e2e;
+      color: #cdd6f4;
+    }
+    #status { font-size: 13px; color: #a6adc8; margin-bottom: 12px; }
+    #info { display: none; }
+    .row { margin-bottom: 6px; font-size: 13px; }
+    .label { color: #a6adc8; margin-right: 6px; }
+    .tier { font-weight: bold; }
+    .tags { font-size: 12px; color: #89b4fa; }
+    button {
+      margin-top: 14px;
+      width: 100%;
+      padding: 8px;
+      background: #89b4fa;
+      color: #1e1e2e;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:disabled { background: #45475a; color: #6c7086; cursor: not-allowed; }
+    #result { margin-top: 10px; font-size: 12px; min-height: 16px; }
+    .ok  { color: #a6e3a1; }
+    .err { color: #f38ba8; }
+  </style>
+</head>
+<body>
+  <div id="status">BOJ 문제 페이지를 열어주세요.</div>
+  <div id="info">
+    <div class="row"><span class="label">문제</span><span id="prob-id"></span> — <span id="prob-title"></span></div>
+    <div class="row"><span class="label">티어</span><span id="prob-tier" class="tier"></span></div>
+    <div class="row"><span class="label">태그</span><span id="prob-tags" class="tags"></span></div>
+    <button id="btn">폴더 생성</button>
+    <div id="result"></div>
+  </div>
+  <script src="lib/browser.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
