@@ -1,6 +1,6 @@
 # pscpp — BOJ / solved.ac 풀이 저장소
 
-![CI](https://github.com/<유저명>/pscpp/actions/workflows/test.yml/badge.svg)
+![CI](https://github.com/16iro/pscpp/actions/workflows/test.yml/badge.svg)
 
 C++17 (GCC) · CMake 기반 알고리즘 문제 풀이 및 리뷰 저장소.
 
