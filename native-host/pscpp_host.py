@@ -34,6 +34,31 @@ def send_message(obj: dict) -> None:
     sys.stdout.buffer.flush()
 
 
+# ── 헬퍼 ─────────────────────────────────────────────────────
+
+SEP = '<<<PSCPP>>>'
+
+
+def _write_samples(dest: str, samples: list):
+    """
+    예제 입출력을 input.txt / expected.txt 에 SEP 구분자로 통합 저장.
+
+    케이스 수 불일치 처리:
+      - samples 는 이미 (input, output) 쌍으로 전달됨.
+      - 빈 input 또는 빈 output 을 가진 케이스는 저장하되 test.sh 에서 SKIP.
+    """
+    def join_cases(texts: list[str]) -> str:
+        return f'\n{SEP}\n'.join(t if t.endswith('\n') else t + '\n' for t in texts)
+
+    inputs  = [s.get('input',  '') for s in samples]
+    outputs = [s.get('output', '') for s in samples]
+
+    with open(os.path.join(dest, 'input.txt'),    'w', encoding='utf-8', newline='\n') as f:
+        f.write(join_cases(inputs)  if inputs  else '')
+    with open(os.path.join(dest, 'expected.txt'), 'w', encoding='utf-8', newline='\n') as f:
+        f.write(join_cases(outputs) if outputs else '')
+
+
 # ── 액션 핸들러 ───────────────────────────────────────────────
 
 def handle_new_prob(msg: dict) -> dict:
@@ -48,8 +73,18 @@ def handle_new_prob(msg: dict) -> dict:
 
     dest = os.path.join(REPO_ROOT, platform, prob_id)
 
-    if os.path.exists(dest):
-        return {'success': False, 'error': f'이미 존재함: {platform}/{prob_id}'}
+    samples  = msg.get('samples', [])
+    do_reset = msg.get('reset', False)
+    exists   = os.path.exists(dest)
+
+    if exists and not do_reset:
+        # 예제 파일만 갱신
+        _write_samples(dest, samples)
+        return {'success': True, 'action': '예제 갱신',
+                'path': f'{platform}/{prob_id}', 'sample_count': len(samples)}
+
+    if exists and do_reset:
+        shutil.rmtree(dest)
 
     os.makedirs(dest)
 
@@ -73,12 +108,11 @@ def handle_new_prob(msg: dict) -> dict:
     with open(os.path.join(dest, 'README.md'), 'w', encoding='utf-8') as f:
         f.write(md)
 
-    # 빈 테스트 파일
-    open(os.path.join(dest, 'input.txt'),    'w').close()
-    open(os.path.join(dest, 'expected.txt'), 'w').close()
+    _write_samples(dest, samples)
 
-    rel = f'{platform}/{prob_id}'
-    return {'success': True, 'path': rel}
+    action = '초기화' if (exists and do_reset) else '생성'
+    return {'success': True, 'action': action,
+            'path': f'{platform}/{prob_id}', 'sample_count': len(samples)}
 
 
 # ── 메인 루프 ─────────────────────────────────────────────────

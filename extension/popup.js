@@ -7,6 +7,25 @@ function tierName(level) {
   return `${names[Math.floor((level - 1) / 5)]} ${grades[(level - 1) % 5]}`;
 }
 
+// BOJ 페이지 DOM에서 예제 입출력 추출 (executeScript로 페이지 컨텍스트에서 실행됨)
+function extractSamples() {
+  const samples  = [];
+  const warnings = [];
+
+  for (let i = 1; ; i++) {
+    const inp = document.getElementById(`sample-input-${i}`);
+    const exp = document.getElementById(`sample-output-${i}`);
+    if (!inp && !exp) break;                          // 더 이상 없음
+    if (inp && !exp) { warnings.push(`예제 ${i}: 출력 없음`); break; }
+    if (!inp && exp) { warnings.push(`예제 ${i}: 입력 없음`); break; }
+    samples.push({
+      input:  inp.innerText.trimEnd(),
+      output: exp.innerText.trimEnd(),
+    });
+  }
+  return { samples, warnings };
+}
+
 async function init() {
   const [tab] = await BrowserAPI.tabs.query({ active: true, currentWindow: true });
   const match = tab?.url?.match(/acmicpc\.net\/problem\/(\d+)/);
@@ -15,17 +34,21 @@ async function init() {
 
   const probId = match[1];
 
-  let data;
-  try {
-    const res = await fetch(`https://solved.ac/api/v3/problem/show?problemId=${probId}`);
-    if (!res.ok) throw new Error(`solved.ac ${res.status}`);
-    data = await res.json();
-  } catch (e) {
-    document.getElementById('status').textContent = `solved.ac 오류: ${e.message}`;
-    return;
-  }
+  // solved.ac API + 페이지 DOM 추출 병렬 실행
+  const [apiRes, scriptRes] = await Promise.all([
+    fetch(`https://solved.ac/api/v3/problem/show?problemId=${probId}`)
+      .then(r => { if (!r.ok) throw new Error(`solved.ac ${r.status}`); return r.json(); }),
+    BrowserAPI.scripting.executeScript({ target: { tabId: tab.id }, func: extractSamples }),
+  ]).catch(e => {
+    document.getElementById('status').textContent = `오류: ${e.message}`;
+    return [null, null];
+  });
 
-  const tags = (data.tags ?? []).map(
+  if (!apiRes) return;
+
+  const data                     = apiRes;
+  const { samples, warnings }    = scriptRes?.[0]?.result ?? { samples: [], warnings: [] };
+  const tags                     = (data.tags ?? []).map(
     t => t.displayNames?.find(d => d.language === 'ko')?.name ?? t.key
   );
 
@@ -36,8 +59,24 @@ async function init() {
   document.getElementById('prob-tier').textContent  = tierName(data.level ?? 0);
   document.getElementById('prob-tags').textContent  = tags.join(', ') || '—';
 
-  document.getElementById('btn').addEventListener('click', async () => {
-    const btn    = document.getElementById('btn');
+  const sampleLabel = document.getElementById('prob-samples');
+  if (sampleLabel) {
+    let text = samples.length > 0 ? `${samples.length}개` : '없음';
+    if (warnings.length) text += ` ⚠ ${warnings.join(', ')}`;
+    sampleLabel.textContent = text;
+  }
+
+  const toggle    = document.getElementById('reset-toggle');
+  const toggleRow = document.getElementById('toggle-row');
+  const btn       = document.getElementById('btn');
+
+  toggle.addEventListener('change', () => {
+    const isReset = toggle.checked;
+    toggleRow.classList.toggle('active', isReset);
+    btn.classList.toggle('reset-mode', isReset);
+  });
+
+  btn.addEventListener('click', async () => {
     const result = document.getElementById('result');
     btn.disabled = true;
     result.textContent = '';
@@ -50,11 +89,13 @@ async function init() {
         title:    data.titleKo ?? data.title ?? '',
         tier:     tierName(data.level ?? 0),
         tags,
+        samples,
+        reset:    toggle.checked,
       });
 
       if (res?.success) {
         result.className   = 'ok';
-        result.textContent = `생성됨: ${res.path}`;
+        result.textContent = `${res.action}: ${res.path} (예제 ${res.sample_count}개)`;
       } else {
         throw new Error(res?.error ?? '알 수 없는 오류');
       }

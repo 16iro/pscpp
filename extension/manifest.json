@@ -3,7 +3,7 @@
   "name": "pscpp helper",
   "version": "1.0",
   "description": "BOJ 문제 폴더 자동 생성 (solved.ac 연동)",
-  "permissions": ["nativeMessaging", "activeTab"],
+  "permissions": ["nativeMessaging", "activeTab", "scripting"],
   "host_permissions": ["https://solved.ac/*"],
   "action": {
     "default_popup": "popup.html",

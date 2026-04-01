@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# 빌드 후 input.txt 실행 결과를 expected.txt 와 diff
+# 빌드 후 input.txt / expected.txt (<<<PSCPP>>> 구분) 로 diff 검증
 # 사용법: ./scripts/test.sh <플랫폼> <문제번호>
-# 예시:   ./scripts/test.sh BOJ 1000
 
 set -euo pipefail
 
@@ -17,34 +16,77 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD="$ROOT/build"
 PROB_DIR="$ROOT/$PLATFORM/$PROB"
 BIN="$BUILD/$PLATFORM/$PROB/${PLATFORM}_${PROB}"
+SEP="<<<PSCPP>>>"
 
-# Windows(Git Bash) 에서는 .exe 붙음
 [[ -f "${BIN}.exe" ]] && BIN="${BIN}.exe"
 
-# 빌드
+# ── 빌드 ──────────────────────────────────────────────────────
 cmake -S "$ROOT" -B "$BUILD" -DCMAKE_BUILD_TYPE=Release > /dev/null 2>&1
 cmake --build "$BUILD" --target "${PLATFORM}_${PROB}" -- -j4
 
-if [[ ! -f "$BIN" ]]; then
-    echo "Binary not found: $BIN"
-    exit 1
-fi
+[[ -f "$BIN" ]] || { echo "Binary not found: $BIN"; exit 1; }
 
-if [[ ! -s "$PROB_DIR/input.txt" ]]; then
-    echo "input.txt is empty — skipping test"
+# ── SEP 기준으로 파일을 케이스 배열로 분리 ────────────────────
+split_cases() {
+    local file="$1"
+    local -n _out="$2"
+    _out=()
+    local block=""
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ "$line" == "$SEP" ]]; then
+            _out+=("$block")
+            block=""
+        else
+            block+="${block:+$'\n'}$line"
+        fi
+    done < "$file"
+    # 마지막 블록 (trailing newline 만 있으면 빈 케이스로 처리)
+    _out+=("$block")
+}
+
+# ── 테스트 파일 존재 확인 ─────────────────────────────────────
+if [[ ! -f "$PROB_DIR/input.txt" || ! -s "$PROB_DIR/input.txt" ]]; then
+    echo "input.txt 없거나 비어있음 — 스킵"
     exit 0
 fi
 
-ACTUAL=$("$BIN" < "$PROB_DIR/input.txt")
-EXPECTED=$(cat "$PROB_DIR/expected.txt")
+split_cases "$PROB_DIR/input.txt"    INPUTS
+split_cases "$PROB_DIR/expected.txt" EXPECTS
 
-if diff <(echo "$ACTUAL") <(echo "$EXPECTED") > /dev/null 2>&1; then
-    echo "✓ PASS — BOJ/$PROB"
-else
-    echo "✗ FAIL — BOJ/$PROB"
-    echo "--- expected"
-    echo "$EXPECTED"
-    echo "+++ actual"
-    echo "$ACTUAL"
-    exit 1
+N_IN=${#INPUTS[@]}
+N_EX=${#EXPECTS[@]}
+N_RUN=$(( N_IN < N_EX ? N_IN : N_EX ))   # min
+
+if (( N_IN != N_EX )); then
+    echo "⚠ 케이스 수 불일치 — input: ${N_IN}개, expected: ${N_EX}개 → ${N_RUN}개만 테스트"
 fi
+
+# ── 케이스별 실행 ─────────────────────────────────────────────
+PASS=0; FAIL=0
+
+for (( i=0; i<N_RUN; i++ )); do
+    INPUT="${INPUTS[$i]}"
+    EXPECT="${EXPECTS[$i]}"
+    CASE_NUM=$(( i + 1 ))
+
+    # 빈 케이스 스킵
+    if [[ -z "${INPUT//[$'\n\r\t ']/}" ]]; then
+        echo "⚠ SKIP [케이스 ${CASE_NUM}] — 빈 입력"
+        continue
+    fi
+
+    ACTUAL=$(echo "$INPUT" | "$BIN")
+
+    if diff <(echo "$ACTUAL") <(echo "$EXPECT") > /dev/null 2>&1; then
+        echo "✓ PASS [케이스 ${CASE_NUM}]"
+        ((PASS++)) || true
+    else
+        echo "✗ FAIL [케이스 ${CASE_NUM}]"
+        diff <(echo "$ACTUAL") <(echo "$EXPECT") || true
+        ((FAIL++)) || true
+    fi
+done
+
+echo ""
+echo "결과: ${PASS} passed, ${FAIL} failed — $PLATFORM/$PROB"
+[[ $FAIL -eq 0 ]]

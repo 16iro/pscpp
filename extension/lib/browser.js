@@ -10,6 +10,9 @@ const BrowserAPI = (() => {
       tabs: {
         query: (q) => browser.tabs.query(q),
       },
+      scripting: {
+        executeScript: (opts) => browser.scripting.executeScript(opts),
+      },
       runtime: {
         sendNativeMessage: (host, msg) => browser.runtime.sendNativeMessage(host, msg),
       },
@@ -20,6 +23,9 @@ const BrowserAPI = (() => {
   return {
     tabs: {
       query: (q) => new Promise((resolve) => chrome.tabs.query(q, resolve)),
+    },
+    scripting: {
+      executeScript: (opts) => chrome.scripting.executeScript(opts),
     },
     runtime: {
       sendNativeMessage: (host, msg) =>
