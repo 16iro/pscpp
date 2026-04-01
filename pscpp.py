@@ -49,6 +49,15 @@ def is_windows() -> bool:
 
 # ── cmake 헬퍼 ────────────────────────────────────────────────
 
+def _build_env(env: dict) -> dict:
+    """cmake / 바이너리 실행에 필요한 PATH가 담긴 환경변수 반환."""
+    run_env = os.environ.copy()
+    if is_windows() and compiler(env) != 'msvc':
+        mingw_bin = os.path.join(env.get('MSYS2_ROOT', r'C:\msys64'), 'mingw64', 'bin')
+        run_env['PATH'] = mingw_bin + os.pathsep + run_env.get('PATH', '')
+    return run_env
+
+
 def cmake_configure(build_dir: str, env: dict) -> None:
     args = ['cmake', '-S', ROOT, '-B', build_dir]
     if compiler(env) == 'msvc':
@@ -57,7 +66,7 @@ def cmake_configure(build_dir: str, env: dict) -> None:
         if is_windows():
             args += ['-G', 'MinGW Makefiles']
         args += ['-DCMAKE_BUILD_TYPE=Release']
-    result = subprocess.run(args, capture_output=True, text=True)
+    result = subprocess.run(args, capture_output=True, text=True, env=_build_env(env))
     if result.returncode != 0:
         print(result.stderr or result.stdout)
         raise SystemExit(f'cmake configure 실패 (exit {result.returncode})')
@@ -69,7 +78,7 @@ def cmake_build(build_dir: str, target: str, env: dict) -> None:
         args += ['--config', 'Release']
     else:
         args += ['--', '-j4']
-    subprocess.run(args, check=True)
+    subprocess.run(args, check=True, env=_build_env(env))
 
 
 def find_binary(build_dir: str, plat: str, prob: str) -> str:
@@ -201,11 +210,7 @@ def cmd_test(plat: str, prob: str, env: dict) -> None:
             tmp_in_path = f.name
         tmp_out_path = tmp_in_path + '.out'
 
-        # MinGW 바이너리 실행 시 DLL 경로 보장
-        run_env = os.environ.copy()
-        if is_windows() and env.get('COMPILER', 'gcc') != 'msvc':
-            mingw_bin = os.path.join(env.get('MSYS2_ROOT', r'C:\msys64'), 'mingw64', 'bin')
-            run_env['PATH'] = mingw_bin + os.pathsep + run_env.get('PATH', '')
+        run_env = _build_env(env)
 
         try:
             with open(tmp_in_path, 'rb') as sin, open(tmp_out_path, 'wb') as sout:
@@ -278,7 +283,7 @@ def cmd_submit(plat: str, prob: str, message: str) -> None:
                ('main.cpp', 'README.md', 'input.txt', 'expected.txt')
                if os.path.exists(os.path.join(ROOT, rel_dir, f))]
     subprocess.run(['git', '-C', ROOT, 'add'] + targets, check=True)
-    subprocess.run(['git', '-C', ROOT, 'commit', '-m', commit_msg], check=True)
+    subprocess.run(['git', '-C', ROOT, 'commit', '-m', commit_msg], check=True, capture_output=True)
     print(f'\nCommitted: {commit_msg}')
     print('→ BOJ에 직접 제출하세요.')
 
