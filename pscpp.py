@@ -218,7 +218,7 @@ def cmd_test(plat: str, prob: str, env: dict) -> None:
                                stderr=subprocess.DEVNULL, env=run_env, check=False)
             if os.path.exists(tmp_out_path):
                 with open(tmp_out_path, 'rb') as f:
-                    actual = f.read().decode('utf-8', errors='replace').strip()
+                    actual = f.read().decode('utf-8', errors='replace').replace('\r\n', '\n').strip()
             else:
                 actual = ''
         finally:
