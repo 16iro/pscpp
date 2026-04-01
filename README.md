@@ -61,26 +61,13 @@ COMPILER=gcc           # gcc (MSYS2/GCC) | msvc (Visual Studio)
 
 ## 빠른 시작 (CLI)
 
-```powershell
-# 새 문제 시작
-scripts\new_prob.bat BOJ 1234
+Windows / macOS / Linux 동일한 명령어 사용.
 
-# 컴파일
-scripts\build.bat BOJ 1234
-
-# 로컬 테스트 (예제 입출력 자동 검증)
-scripts\test.bat BOJ 1234
-
-# 제출 직전 커밋 (attempt #N 자동 기록)
-scripts\submit.bat BOJ 1234 "접근 방법 요약"
-```
-
-Unix (macOS / Linux):
 ```bash
-./scripts/new_prob.sh BOJ 1234
-./scripts/build.sh    BOJ 1234
-./scripts/test.sh     BOJ 1234
-./scripts/submit.sh   BOJ 1234 "접근 방법 요약"
+python pscpp.py new    BOJ 1234              # 문제 폴더 생성
+python pscpp.py build  BOJ 1234              # 컴파일
+python pscpp.py test   BOJ 1234              # 예제 입출력 자동 검증
+python pscpp.py submit BOJ 1234 "접근 방법"  # 제출 직전 커밋
 ```
 
 ### 예제 파일 형식
