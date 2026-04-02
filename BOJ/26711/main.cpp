@@ -25,6 +25,8 @@ void solve() {
         a_i--;
         b_i--;
     }
+    if (adder > 0)
+        result = "1" + result;
     cout << result;
 }
 
