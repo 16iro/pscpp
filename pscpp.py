@@ -21,6 +21,30 @@ import tempfile
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SEP  = '<<<PSCPP>>>'
 
+# Windows NTSTATUS / Unix signal exit code 설명
+_EXIT_CODE_NAMES: dict[int, str] = {
+    # Windows NTSTATUS (unsigned 32-bit, Python receives as signed-extended int)
+    0xC0000005: 'ACCESS_VIOLATION',
+    0xC0000374: 'HEAP_CORRUPTION',
+    0xC0000409: 'STACK_BUFFER_OVERRUN',
+    0xC00000FD: 'STACK_OVERFLOW',
+    0xC0000094: 'INTEGER_DIVIDE_BY_ZERO',
+    0xC0000095: 'INTEGER_OVERFLOW',
+    0xC000008E: 'FLOAT_DIVIDE_BY_ZERO',
+    0xC0000096: 'PRIVILEGED_INSTRUCTION',
+    0xC000001D: 'ILLEGAL_INSTRUCTION',
+    0xC0000006: 'IN_PAGE_ERROR',
+    # Unix signals (128 + signal)
+    134: 'SIGABRT (abort/assert)',
+    136: 'SIGFPE (float exception)',
+    139: 'SIGSEGV (segfault)',
+    138: 'SIGBUS (bus error)',
+}
+
+def _exit_code_name(code: int) -> str:
+    name = _EXIT_CODE_NAMES.get(code & 0xFFFFFFFF) or _EXIT_CODE_NAMES.get(code)
+    return f' ({name})' if name else ''
+
 
 # ── .env 로더 ─────────────────────────────────────────────────
 
@@ -214,8 +238,8 @@ def cmd_test(plat: str, prob: str, env: dict) -> None:
 
         try:
             with open(tmp_in_path, 'rb') as sin, open(tmp_out_path, 'wb') as sout:
-                subprocess.run([binary], stdin=sin, stdout=sout,
-                               stderr=subprocess.DEVNULL, env=run_env, check=False)
+                proc = subprocess.run([binary], stdin=sin, stdout=sout,
+                                      stderr=subprocess.DEVNULL, env=run_env, check=False)
             if os.path.exists(tmp_out_path):
                 with open(tmp_out_path, 'rb') as f:
                     actual = f.read().decode('utf-8', errors='replace').replace('\r\n', '\n').strip()
@@ -227,7 +251,10 @@ def cmd_test(plat: str, prob: str, env: dict) -> None:
                 os.unlink(tmp_out_path)
         expect = exp.strip()
 
-        if actual == expect:
+        if proc.returncode != 0:
+            print(f'✗ FAIL [케이스 {i}] (exit code {proc.returncode}{_exit_code_name(proc.returncode)})')
+            failed += 1
+        elif actual == expect:
             print(f'✓ PASS [케이스 {i}]')
             passed += 1
         else:
