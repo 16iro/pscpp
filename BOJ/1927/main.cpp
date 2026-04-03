@@ -50,10 +50,6 @@ int pop() {
             break;
         }
     }
-    // cout << "[LOG] ";
-    // for (auto itr = heap.begin(); itr != heap.end(); ++itr) {
-    //     cout << *itr << " ";
-    // }
     return result;
 }
 
