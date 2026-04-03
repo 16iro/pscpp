@@ -29,17 +29,17 @@ int pop() {
     while (true) {
         int l_idx = n_idx * 2;
         int r_idx = n_idx * 2 + 1;
-        l_idx = l_idx >= (int)(heap.size() - 1) ? -1 : l_idx;
-        r_idx = r_idx >= (int)(heap.size() - 1) ? -1 : r_idx;
+        l_idx = l_idx >= (int)(heap.size()) ? -1 : l_idx;
+        r_idx = r_idx >= (int)(heap.size()) ? -1 : r_idx;
 
-        // find GE node
+        // find LE node
         int ge_idx = -1;
         if (l_idx == -1 && r_idx == -1) {
             break;
         } else if (l_idx == -1 || r_idx == -1) {
             ge_idx = r_idx == -1 ? l_idx : r_idx;
         } else {
-            ge_idx = heap[l_idx - 1] >= heap[r_idx - 1] ? l_idx : r_idx;
+            ge_idx = heap[l_idx - 1] <= heap[r_idx - 1] ? l_idx : r_idx;
         }
 
         // swap if child node is GE than current node
