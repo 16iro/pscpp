@@ -29,8 +29,8 @@ int pop() {
     while (true) {
         int l_idx = n_idx * 2;
         int r_idx = n_idx * 2 + 1;
-        l_idx = l_idx >= (int)(heap.size()) ? -1 : l_idx;
-        r_idx = r_idx >= (int)(heap.size()) ? -1 : r_idx;
+        l_idx = l_idx > (int)(heap.size()) ? -1 : l_idx;
+        r_idx = r_idx > (int)(heap.size()) ? -1 : r_idx;
 
         // find LE node
         int ge_idx = -1;
@@ -50,6 +50,10 @@ int pop() {
             break;
         }
     }
+    // cout << "[LOG] ";
+    // for (auto itr = heap.begin(); itr != heap.end(); ++itr) {
+    //     cout << *itr << " ";
+    // }
     return result;
 }
 
