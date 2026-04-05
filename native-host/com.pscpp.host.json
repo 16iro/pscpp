@@ -1,7 +1,7 @@
 {
   "name": "com.pscpp.host",
   "description": "pscpp 문제 폴더 생성 호스트",
-  "path": "D:\\.github\\pscpp\\native-host\\pscpp_host.bat",
+  "path": "/home/radionemu/.github/pscpp/native-host/pscpp_host.py",
   "type": "stdio",
   "allowed_extensions": [
     "pscpp@helper"
