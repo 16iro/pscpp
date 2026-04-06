@@ -5,13 +5,13 @@ vector<int> heap;
 
 void push(int input) {
     heap.push_back(input);
-    int idx = heap.size() - 1;
+    int idx = heap.size();
     int p_idx = idx / 2;
-    while (p_idx < idx) {
-        if (heap[p_idx] >= heap[idx]) {
+    while (p_idx > 0 && p_idx < idx) {
+        if (heap[p_idx - 1] > heap[idx - 1]) {
             return;
         }
-        swap(heap[p_idx], heap[idx]);
+        swap(heap[p_idx - 1], heap[idx - 1]);
         idx /= 2;
         p_idx /= 2;
     }
@@ -36,7 +36,7 @@ int pop() {
             le_idx = heap[l_idx - 1] >= heap[r_idx - 1] ? l_idx : r_idx;
         }
 
-        if (heap[idx - 1] < heap[le_idx - 1]) {
+        if (heap[idx - 1] <= heap[le_idx - 1]) {
             swap(heap[idx - 1], heap[le_idx - 1]);
             idx = le_idx;
         } else {
