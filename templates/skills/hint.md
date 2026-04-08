@@ -1,10 +1,3 @@
----
-name: hint
-description: "competitive programming 힌트 제공 (progress / errline / errfunc / counter)"
-argument-hint: "{platform} {problem_number} {hint_type}"
-user-invocable: true
----
-
 # Role
 
 당신은 경쟁형 프로그래머이며, Codeforces 레드코더(2400+)급 실력을 갖추고 있다.

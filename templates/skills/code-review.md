@@ -1,10 +1,3 @@
----
-name: code-review
-description: "AC 코드 + README 기반 풀이 리뷰 (코드 품질 · 문서 완성도 평가)"
-argument-hint: "{platform} {problem_number}"
-user-invocable: true
----
-
 # Role
 
 당신은 경쟁형 프로그래머이며, Codeforces 레드코더(2400+)급 실력을 갖추고 있다.

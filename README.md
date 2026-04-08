@@ -17,8 +17,8 @@ pscpp/
 │       └── 2.in / 2.out
 ├── bits/
 │   └── stdc++.h         # MSVC 호환 스텁 (GCC는 자체 제공)
-├── templates/           # 코드 · 블로그 포스팅 템플릿
-├── scripts/             # 문제 생성 · 테스트 · 커밋 자동화
+├── templates/           # 코드 · 블로그 포스팅 · 스킬 프롬프트 템플릿
+│   └── skills/          # AI 스킬 공유 프롬프트 원본 (hint, code-review)
 ├── extension/           # 브라우저 익스텐션 (BOJ 문제 폴더 자동 생성)
 ├── native-host/         # 익스텐션 ↔ 로컬 파일시스템 브릿지
 └── notes/               # 알고리즘 개념 정리 · 재사용 스니펫
@@ -28,7 +28,7 @@ pscpp/
 
 ## 환경 설정
 
-클론 후 setup 스크립트를 **한 번만** 실행하면 `.env` 자동 생성 + git hook 등록까지 완료된다.
+클론 후 setup 스크립트를 **한 번만** 실행하면 `.env` 자동 생성 + git hook 등록 + AI 스킬 빌드까지 완료된다.
 
 ```powershell
 # Windows
@@ -149,6 +149,24 @@ Chrome은 표시된 Extension ID를 복사 후 네이티브 호스트 재등록 
 
 > Firefox는 임시 로드이므로 재시작 시 재등록 필요.  
 > 영구 설치: [web-ext](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/) 참고.
+
+---
+
+## AI 스킬 (hint / code-review)
+
+`templates/skills/`에 공유 프롬프트 원본을 관리하며, `setup` 시 LLM별 스킬 파일을 자동 생성한다.
+
+| LLM | 생성 위치 | 비고 |
+|-----|----------|------|
+| Claude Code | `.claude/skills/*/SKILL.md` | 프론트매터 포함 |
+| Gemini CLI | `.gemini/instructions/*.md` | 본문만 |
+
+```bash
+# 스킬 프롬프트 수정 후 재빌드
+python pscpp.py setup
+```
+
+생성된 스킬 파일은 `.gitignore`로 추적 제외. 새 LLM 추가 시 `pscpp.py`의 `SKILL_FRONTMATTER` / `SKILL_TARGETS`에 항목 추가.
 
 ---
 

@@ -128,6 +128,61 @@ def find_binary(build_dir: str, plat: str, prob: str) -> str:
 
 # ── setup ─────────────────────────────────────────────────────
 
+SKILL_FRONTMATTER = {
+    'claude': {
+        'hint': (
+            '---\n'
+            'name: hint\n'
+            'description: "competitive programming 힌트 제공 (progress / errline / errfunc / counter)"\n'
+            'argument-hint: "{platform} {problem_number} {hint_type}"\n'
+            'user-invocable: true\n'
+            '---\n\n'
+        ),
+        'code-review': (
+            '---\n'
+            'name: code-review\n'
+            'description: "AC 코드 + README 기반 풀이 리뷰 (코드 품질 · 문서 완성도 평가)"\n'
+            'argument-hint: "{platform} {problem_number}"\n'
+            'user-invocable: true\n'
+            '---\n\n'
+        ),
+    },
+    'gemini': {
+        'hint': '',       # Gemini는 프론트매터 없이 본문만
+        'code-review': '',
+    },
+}
+
+SKILL_TARGETS = {
+    'claude': lambda name: os.path.join(ROOT, '.claude', 'skills', name, 'SKILL.md'),
+    'gemini': lambda name: os.path.join(ROOT, '.gemini', 'instructions', f'{name}.md'),
+}
+
+
+def _build_skills() -> None:
+    """templates/skills/ 의 공유 본문에 LLM별 프론트매터를 붙여 스킬 파일 생성."""
+    skills_src = os.path.join(ROOT, 'templates', 'skills')
+    if not os.path.isdir(skills_src):
+        return
+
+    for src_file in os.listdir(skills_src):
+        if not src_file.endswith('.md'):
+            continue
+        skill_name = src_file.removesuffix('.md')
+
+        with open(os.path.join(skills_src, src_file), encoding='utf-8') as f:
+            body = f.read()
+
+        for llm, targets in SKILL_TARGETS.items():
+            frontmatter = SKILL_FRONTMATTER.get(llm, {}).get(skill_name, '')
+            dest = targets(skill_name)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            with open(dest, 'w', encoding='utf-8', newline='\n') as f:
+                f.write(frontmatter + body)
+
+    print('스킬 빌드 완료 (claude, gemini)')
+
+
 def cmd_setup(env: dict) -> None:
     # git hooks 등록
     subprocess.run(
@@ -138,6 +193,9 @@ def cmd_setup(env: dict) -> None:
     if os.path.exists(hook):
         os.chmod(hook, 0o755)
     print('git hooks 등록 완료')
+
+    # 스킬 빌드
+    _build_skills()
 
     # .env 생성 (이미 있으면 스킵)
     env_path = os.path.join(ROOT, '.env')
