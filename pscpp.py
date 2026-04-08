@@ -11,6 +11,7 @@ pscpp — unified CLI
 """
 
 import argparse
+import json
 import os
 import platform
 import shutil
@@ -34,6 +35,8 @@ _EXIT_CODE_NAMES: dict[int, str] = {
     0xC0000096: 'PRIVILEGED_INSTRUCTION',
     0xC000001D: 'ILLEGAL_INSTRUCTION',
     0xC0000006: 'IN_PAGE_ERROR',
+    # Windows CRT exit codes
+    3: 'abort() (assert/runtime check failure)',
     # Unix signals (128 + signal)
     134: 'SIGABRT (abort/assert)',
     136: 'SIGFPE (float exception)',
@@ -209,6 +212,16 @@ def cmd_test(plat: str, prob: str, env: dict) -> None:
     input_path    = os.path.join(prob_dir, 'input.txt')
     expected_path = os.path.join(prob_dir, 'expected.txt')
 
+    # info.json 에서 시간제한 읽기 (없으면 기본 5초)
+    info_path = os.path.join(prob_dir, 'info.json')
+    time_limit_sec = 5.0
+    if os.path.exists(info_path):
+        with open(info_path, encoding='utf-8') as f:
+            info = json.load(f)
+        time_limit_sec = float(info.get('time_limit_sec', 5.0))
+        print(f'시간제한: {info.get("time_limit", f"{time_limit_sec}초")} '
+              f'(타임아웃: {time_limit_sec}s)')
+
     if not os.path.exists(input_path) or os.path.getsize(input_path) == 0:
         print('input.txt 없거나 비어있음 — 스킵')
         return
@@ -238,8 +251,14 @@ def cmd_test(plat: str, prob: str, env: dict) -> None:
 
         try:
             with open(tmp_in_path, 'rb') as sin, open(tmp_out_path, 'wb') as sout:
-                proc = subprocess.run([binary], stdin=sin, stdout=sout,
-                                      stderr=subprocess.DEVNULL, env=run_env, check=False)
+                try:
+                    proc = subprocess.run([binary], stdin=sin, stdout=sout,
+                                          stderr=subprocess.DEVNULL, env=run_env,
+                                          timeout=time_limit_sec, check=False)
+                except subprocess.TimeoutExpired:
+                    print(f'⏱ TLE [케이스 {i}] — {time_limit_sec}s 초과')
+                    failed += 1
+                    continue
             if os.path.exists(tmp_out_path):
                 with open(tmp_out_path, 'rb') as f:
                     actual = f.read().decode('utf-8', errors='replace').replace('\r\n', '\n').strip()
@@ -252,7 +271,7 @@ def cmd_test(plat: str, prob: str, env: dict) -> None:
         expect = exp.strip()
 
         if proc.returncode != 0:
-            print(f'✗ FAIL [케이스 {i}] (exit code {proc.returncode}{_exit_code_name(proc.returncode)})')
+            print(f'✗ FAIL [케이스 {i}] (exit code {proc.returncode})')
             failed += 1
         elif actual == expect:
             print(f'✓ PASS [케이스 {i}]')
@@ -320,6 +339,30 @@ def cmd_submit(plat: str, prob: str, message: str) -> None:
     print('→ BOJ에 직접 제출하세요.')
 
 
+# ── review-commit ────────────────────────────────────────────
+
+def cmd_review_commit(plat: str, prob: str) -> None:
+    rel_dir = f'{plat}/{prob}'
+    readme  = os.path.join(ROOT, rel_dir, 'README.md')
+
+    if not os.path.exists(readme):
+        print(f'README.md 없음: {rel_dir}')
+        return
+
+    diff = subprocess.run(
+        ['git', '-C', ROOT, 'diff', '--quiet', 'HEAD', '--', os.path.join(rel_dir, 'README.md')],
+        capture_output=True,
+    )
+    if diff.returncode == 0:
+        print(f'README.md 변경사항 없음: {rel_dir}')
+        return
+
+    commit_msg = f'{plat}/{prob}: code review by AI'
+    subprocess.run(['git', '-C', ROOT, 'add', os.path.join(rel_dir, 'README.md')], check=True)
+    subprocess.run(['git', '-C', ROOT, 'commit', '-m', commit_msg], check=True, capture_output=True)
+    print(f'Committed: {commit_msg}')
+
+
 # ── 진입점 ────────────────────────────────────────────────────
 
 def main() -> None:
@@ -342,15 +385,20 @@ def main() -> None:
     p.add_argument('prob')
     p.add_argument('message', nargs='?', default='', help='커밋 메시지 suffix')
 
+    p = sub.add_parser('review-commit', help='AI 코드 리뷰 결과 커밋 (README.md만)')
+    p.add_argument('platform')
+    p.add_argument('prob')
+
     args = parser.parse_args()
     env  = load_env()
 
     dispatch = {
-        'setup':  lambda: cmd_setup(env),
-        'new':    lambda: cmd_new(args.platform, args.prob),
-        'build':  lambda: cmd_build(args.platform, args.prob, env),
-        'test':   lambda: cmd_test(args.platform, args.prob, env),
-        'submit': lambda: cmd_submit(args.platform, args.prob, args.message),
+        'setup':          lambda: cmd_setup(env),
+        'new':            lambda: cmd_new(args.platform, args.prob),
+        'build':          lambda: cmd_build(args.platform, args.prob, env),
+        'test':           lambda: cmd_test(args.platform, args.prob, env),
+        'submit':         lambda: cmd_submit(args.platform, args.prob, args.message),
+        'review-commit':  lambda: cmd_review_commit(args.platform, args.prob),
     }
     dispatch[args.command]()
 

@@ -37,6 +37,33 @@ def send_message(obj: dict) -> None:
 # ── 헬퍼 ─────────────────────────────────────────────────────
 
 SEP = '<<<PSCPP>>>'
+import re as _re
+
+def _parse_time_sec(time_str: str | None) -> float:
+    """'2 초', '0.5 초 (추가 시간 없음)' 등에서 초 단위 float 추출."""
+    if not time_str:
+        return 2.0
+    m = _re.search(r'([\d.]+)\s*초', time_str)
+    return float(m.group(1)) if m else 2.0
+
+
+def _write_info(dest: str, msg: dict) -> None:
+    stmt = msg.get('statement') or {}
+    info = {
+        'title':      msg.get('title', ''),
+        'tier':       msg.get('tier', ''),
+        'tags':       msg.get('tags', []),
+        'time_limit': msg.get('time_limit'),
+        'mem_limit':  msg.get('mem_limit'),
+        'time_limit_sec': _parse_time_sec(msg.get('time_limit')),
+        'statement': {
+            'description': stmt.get('description', ''),
+            'input':       stmt.get('input', ''),
+            'output':      stmt.get('output', ''),
+        },
+    }
+    with open(os.path.join(dest, 'info.json'), 'w', encoding='utf-8') as f:
+        json.dump(info, f, ensure_ascii=False, indent=2)
 
 
 def _write_samples(dest: str, samples: list):
@@ -78,8 +105,9 @@ def handle_new_prob(msg: dict) -> dict:
     exists   = os.path.exists(dest)
 
     if exists and not do_reset:
-        # 예제 파일만 갱신
+        # 예제 + 메타데이터 갱신 (main.cpp · README 유지)
         _write_samples(dest, samples)
+        _write_info(dest, msg)
         return {'success': True, 'action': '예제 갱신',
                 'path': f'{platform}/{prob_id}', 'sample_count': len(samples)}
 
@@ -109,6 +137,7 @@ def handle_new_prob(msg: dict) -> dict:
         f.write(md)
 
     _write_samples(dest, samples)
+    _write_info(dest, msg)
 
     action = '초기화' if (exists and do_reset) else '생성'
     return {'success': True, 'action': action,

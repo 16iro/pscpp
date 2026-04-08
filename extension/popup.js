@@ -7,23 +7,47 @@ function tierName(level) {
   return `${names[Math.floor((level - 1) / 5)]} ${grades[(level - 1) % 5]}`;
 }
 
-// BOJ 페이지 DOM에서 예제 입출력 추출 (executeScript로 페이지 컨텍스트에서 실행됨)
-function extractSamples() {
+// BOJ 페이지 DOM에서 예제 입출력 + 시간/메모리 제한 추출
+function extractPageInfo() {
+  // 예제 입출력
   const samples  = [];
   const warnings = [];
-
   for (let i = 1; ; i++) {
     const inp = document.getElementById(`sample-input-${i}`);
     const exp = document.getElementById(`sample-output-${i}`);
-    if (!inp && !exp) break;                          // 더 이상 없음
+    if (!inp && !exp) break;
     if (inp && !exp) { warnings.push(`예제 ${i}: 출력 없음`); break; }
     if (!inp && exp) { warnings.push(`예제 ${i}: 입력 없음`); break; }
-    samples.push({
-      input:  inp.innerText.trimEnd(),
-      output: exp.innerText.trimEnd(),
-    });
+    samples.push({ input: inp.innerText.trimEnd(), output: exp.innerText.trimEnd() });
   }
-  return { samples, warnings };
+
+  // 시간 / 메모리 제한
+  let timeLimit = null, memLimit = null;
+  const row = document.querySelector('#problem-info tbody tr');
+  if (row) {
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 2) {
+      timeLimit = cells[0].innerText.trim();
+      memLimit  = cells[1].innerText.trim();
+    }
+  }
+
+  // 문제 원문 섹션 (문제 / 입력 / 출력)
+  // BOJ 페이지 구조: #problem_description > .problem-text
+  // .problem-text 없으면 섹션 자체에서 텍스트 추출
+  function sectionText(id) {
+    const section = document.getElementById(id);
+    if (!section) return '';
+    const inner = section.querySelector('.problem-text');
+    return (inner ?? section).innerText.trim();
+  }
+  const statement = {
+    description: sectionText('problem_description'),
+    input:       sectionText('problem_input'),
+    output:      sectionText('problem_output'),
+  };
+
+  return { samples, warnings, timeLimit, memLimit, statement };
 }
 
 async function init() {
@@ -38,7 +62,7 @@ async function init() {
   const [apiRes, scriptRes] = await Promise.all([
     fetch(`https://solved.ac/api/v3/problem/show?problemId=${probId}`)
       .then(r => { if (!r.ok) throw new Error(`solved.ac ${r.status}`); return r.json(); }),
-    BrowserAPI.scripting.executeScript({ target: { tabId: tab.id }, func: extractSamples }),
+    BrowserAPI.scripting.executeScript({ target: { tabId: tab.id }, func: extractPageInfo }),
   ]).catch(e => {
     document.getElementById('status').textContent = `오류: ${e.message}`;
     return [null, null];
@@ -46,8 +70,9 @@ async function init() {
 
   if (!apiRes) return;
 
-  const data                     = apiRes;
-  const { samples, warnings }    = scriptRes?.[0]?.result ?? { samples: [], warnings: [] };
+  const data                                      = apiRes;
+  const { samples, warnings, timeLimit, memLimit, statement } =
+    scriptRes?.[0]?.result ?? { samples: [], warnings: [], timeLimit: null, memLimit: null, statement: null };
   const tags                     = (data.tags ?? []).map(
     t => t.displayNames?.find(d => d.language === 'ko')?.name ?? t.key
   );
@@ -58,6 +83,8 @@ async function init() {
   document.getElementById('prob-title').textContent = data.titleKo ?? data.title ?? '';
   document.getElementById('prob-tier').textContent  = tierName(data.level ?? 0);
   document.getElementById('prob-tags').textContent  = tags.join(', ') || '—';
+  document.getElementById('prob-time').textContent  = timeLimit ?? '—';
+  document.getElementById('prob-mem').textContent   = memLimit  ?? '—';
 
   const sampleLabel = document.getElementById('prob-samples');
   if (sampleLabel) {
@@ -83,14 +110,17 @@ async function init() {
 
     try {
       const res = await BrowserAPI.runtime.sendNativeMessage(HOST, {
-        action:   'new_prob',
-        platform: 'BOJ',
-        id:       probId,
-        title:    data.titleKo ?? data.title ?? '',
-        tier:     tierName(data.level ?? 0),
+        action:     'new_prob',
+        platform:   'BOJ',
+        id:         probId,
+        title:      data.titleKo ?? data.title ?? '',
+        tier:       tierName(data.level ?? 0),
         tags,
         samples,
-        reset:    toggle.checked,
+        time_limit: timeLimit,
+        mem_limit:  memLimit,
+        statement,
+        reset:      toggle.checked,
       });
 
       if (res?.success) {

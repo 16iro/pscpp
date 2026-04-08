@@ -20,6 +20,12 @@ Makefile
 # 환경 설정 (머신별 경로)
 .env
 
+# Native Messaging 매니페스트 (install.py가 머신별로 생성)
+native-host/com.pscpp.host.json
+
+# 익스텐션 빌드 산출물
+web-ext-artifacts/
+
 # 기타
 .DS_Store
 Thumbs.db
