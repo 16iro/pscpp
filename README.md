@@ -11,6 +11,7 @@ pscpp/
 ├── BOJ/<번호>/          # 문제별 풀이
 │   ├── main.cpp         # 풀이 코드
 │   ├── README.md        # 리뷰 · 블로그 포스팅용
+│   ├── info.json        # 문제 메타데이터 (티어, 태그, 제한, 문제 원문)
 │   ├── input.txt        # 예제 입력 (<<<PSCPP>>> 구분자로 케이스 구분)
 │   └── expected.txt     # 예제 출력
 ├── bits/
@@ -64,10 +65,12 @@ COMPILER=gcc           # gcc (MSYS2/GCC) | msvc (Visual Studio)
 Windows / macOS / Linux 동일한 명령어 사용.
 
 ```bash
-python pscpp.py new    BOJ 1234              # 문제 폴더 생성
-python pscpp.py build  BOJ 1234              # 컴파일
-python pscpp.py test   BOJ 1234              # 예제 입출력 자동 검증
-python pscpp.py submit BOJ 1234 "접근 방법"  # 제출 직전 커밋
+python pscpp.py new            BOJ 1234              # 문제 폴더 생성
+python pscpp.py build          BOJ 1234              # 컴파일
+python pscpp.py test           BOJ 1234              # 예제 입출력 자동 검증
+python pscpp.py submit         BOJ 1234 "접근 방법"  # 제출 직전 커밋
+python pscpp.py review-commit  BOJ 1234              # AI 코드 리뷰 결과 커밋
+python pscpp.py clean          BOJ                   # 미제출 문제 폴더 일괄 삭제
 ```
 
 ### 예제 파일 형식

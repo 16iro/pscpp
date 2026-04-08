@@ -363,6 +363,47 @@ def cmd_review_commit(plat: str, prob: str) -> None:
     print(f'Committed: {commit_msg}')
 
 
+# ── clean ────────────────────────────────────────────────────
+
+def cmd_clean(plat: str) -> None:
+    plat_dir = os.path.join(ROOT, plat)
+    if not os.path.isdir(plat_dir):
+        print(f'플랫폼 디렉토리 없음: {plat}')
+        return
+
+    targets = []
+    for name in sorted(os.listdir(plat_dir)):
+        prob_dir = os.path.join(plat_dir, name)
+        if not os.path.isdir(prob_dir):
+            continue
+        rel_dir = f'{plat}/{name}'
+        log = subprocess.run(
+            ['git', '-C', ROOT, 'log', '--oneline', '--grep', 'attempt #', '--', rel_dir],
+            capture_output=True, text=True,
+        )
+        if not log.stdout.strip():
+            targets.append((name, prob_dir))
+
+    if not targets:
+        print(f'{plat}: 미제출 문제 없음')
+        return
+
+    print(f'{plat}: 미제출 문제 {len(targets)}개')
+    for name, _ in targets:
+        print(f'  - {plat}/{name}')
+
+    answer = input('\n삭제하시겠습니까? (y/N): ').strip().lower()
+    if answer != 'y':
+        print('취소됨')
+        return
+
+    for name, prob_dir in targets:
+        shutil.rmtree(prob_dir)
+        print(f'삭제됨: {plat}/{name}')
+
+    print(f'\n{len(targets)}개 폴더 삭제 완료')
+
+
 # ── 진입점 ────────────────────────────────────────────────────
 
 def main() -> None:
@@ -389,16 +430,22 @@ def main() -> None:
     p.add_argument('platform')
     p.add_argument('prob')
 
+    p = sub.add_parser('clean', help='미제출 문제 폴더 일괄 삭제')
+    p.add_argument('platform', help='플랫폼 (예: BOJ)')
+
     args = parser.parse_args()
     env  = load_env()
 
+    prob = getattr(args, 'prob', None)
+
     dispatch = {
         'setup':          lambda: cmd_setup(env),
-        'new':            lambda: cmd_new(args.platform, args.prob),
-        'build':          lambda: cmd_build(args.platform, args.prob, env),
-        'test':           lambda: cmd_test(args.platform, args.prob, env),
-        'submit':         lambda: cmd_submit(args.platform, args.prob, args.message),
-        'review-commit':  lambda: cmd_review_commit(args.platform, args.prob),
+        'new':            lambda: cmd_new(args.platform, prob),
+        'build':          lambda: cmd_build(args.platform, prob, env),
+        'test':           lambda: cmd_test(args.platform, prob, env),
+        'submit':         lambda: cmd_submit(args.platform, prob, args.message),
+        'review-commit':  lambda: cmd_review_commit(args.platform, prob),
+        'clean':          lambda: cmd_clean(args.platform),
     }
     dispatch[args.command]()
 
