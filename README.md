@@ -12,8 +12,9 @@ pscpp/
 │   ├── main.cpp         # 풀이 코드
 │   ├── README.md        # 리뷰 · 블로그 포스팅용
 │   ├── info.json        # 문제 메타데이터 (티어, 태그, 제한, 문제 원문)
-│   ├── input.txt        # 예제 입력 (<<<PSCPP>>> 구분자로 케이스 구분)
-│   └── expected.txt     # 예제 출력
+│   └── tc/              # 테스트케이스
+│       ├── 1.in / 1.out
+│       └── 2.in / 2.out
 ├── bits/
 │   └── stdc++.h         # MSVC 호환 스텁 (GCC는 자체 제공)
 ├── templates/           # 코드 · 블로그 포스팅 템플릿
@@ -69,27 +70,41 @@ python pscpp.py new            BOJ 1234              # 문제 폴더 생성
 python pscpp.py build          BOJ 1234              # 컴파일
 python pscpp.py test           BOJ 1234              # 예제 입출력 자동 검증
 python pscpp.py submit         BOJ 1234 "접근 방법"  # 제출 직전 커밋
+python pscpp.py add-tc         BOJ 1234                     # 테스트케이스 추가 (인터랙티브)
+python pscpp.py add-tc         BOJ 1234 -in "1 2" -out "3"  # 테스트케이스 추가 (원라이너)
 python pscpp.py review-commit  BOJ 1234              # AI 코드 리뷰 결과 커밋
 python pscpp.py clean          BOJ                   # 미제출 문제 폴더 일괄 삭제
 ```
 
 ### 예제 파일 형식
 
-예제가 여러 개인 경우 `<<<PSCPP>>>` 구분자로 통합 관리:
+테스트케이스는 문제 폴더 하위 `tc/` 디렉토리에 개별 파일로 관리:
 
 ```
-# input.txt
-1 2
-<<<PSCPP>>>
-100 200
-
-# expected.txt
-3
-<<<PSCPP>>>
-300
+BOJ/1234/tc/
+├── 1.in    # 예제 입력 1
+├── 1.out   # 예제 출력 1
+├── 2.in    # 예제 입력 2
+└── 2.out   # 예제 출력 2
 ```
 
-`test.bat` / `test.sh` 가 케이스별로 분리해 실행하고 결과를 개별 보고.
+브라우저 익스텐션이 자동 생성하며, `add-tc` 커맨드로 수동 추가도 가능.
+
+### 테스트케이스 수동 추가
+
+```bash
+# 인터랙티브 모드 — 복사 붙여넣기에 최적
+python pscpp.py add-tc BOJ 1234
+[예제 입력] (빈 줄로 종료):
+5
+2 4 -10 4 -9
+
+[예제 출력] (빈 줄로 종료):
+2 1 4 5 1
+
+# 원라이너 — \n 이스케이프 지원
+python pscpp.py add-tc BOJ 1234 -in "5\n2 4 -10 4 -9" -out "2 1 4 5 1"
+```
 
 ---
 

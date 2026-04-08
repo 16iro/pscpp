@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-pscpp — unified CLI
+pscpp —unified CLI
 
 사용법:
   python pscpp.py setup
@@ -11,6 +11,7 @@ pscpp — unified CLI
 """
 
 import argparse
+import io
 import json
 import os
 import platform
@@ -19,8 +20,12 @@ import subprocess
 import sys
 import tempfile
 
+# Windows CP949 환경에서 UTF-8 출력 보장
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
-SEP  = '<<<PSCPP>>>'
 
 # Windows NTSTATUS / Unix signal exit code 설명
 _EXIT_CODE_NAMES: dict[int, str] = {
@@ -179,8 +184,7 @@ def cmd_new(plat: str, prob: str) -> None:
     with open(os.path.join(dest, 'README.md'), 'w', encoding='utf-8') as f:
         f.write(md)
 
-    open(os.path.join(dest, 'input.txt'),    'w').close()
-    open(os.path.join(dest, 'expected.txt'), 'w').close()
+    os.makedirs(os.path.join(dest, 'tc'), exist_ok=True)
 
     print(f'생성됨: {plat}/{prob}')
 
@@ -209,8 +213,7 @@ def cmd_test(plat: str, prob: str, env: dict) -> None:
     cmake_build(build_dir, target, env)
     binary = find_binary(build_dir, plat, prob)
 
-    input_path    = os.path.join(prob_dir, 'input.txt')
-    expected_path = os.path.join(prob_dir, 'expected.txt')
+    tc_dir = os.path.join(prob_dir, 'tc')
 
     # info.json 에서 시간제한 읽기 (없으면 기본 5초)
     info_path = os.path.join(prob_dir, 'info.json')
@@ -222,67 +225,66 @@ def cmd_test(plat: str, prob: str, env: dict) -> None:
         print(f'시간제한: {info.get("time_limit", f"{time_limit_sec}초")} '
               f'(타임아웃: {time_limit_sec}s)')
 
-    if not os.path.exists(input_path) or os.path.getsize(input_path) == 0:
-        print('input.txt 없거나 비어있음 — 스킵')
+    # tc/ 에서 N.in 파일을 숫자 순으로 수집
+    if not os.path.isdir(tc_dir):
+        print('tc/ 디렉토리 없음 —스킵')
         return
 
-    with open(input_path,    encoding='utf-8') as f: raw_in  = f.read()
-    with open(expected_path, encoding='utf-8') as f: raw_exp = f.read()
-
-    def split_cases(raw: str) -> list[str]:
-        return [c for c in raw.split(f'\n{SEP}\n') if c.strip()]
-
-    inputs    = split_cases(raw_in)
-    expecteds = split_cases(raw_exp)
-    n_in, n_ex = len(inputs), len(expecteds)
-    n_run = min(n_in, n_ex)
-
-    if n_in != n_ex:
-        print(f'⚠ 케이스 수 불일치 — input: {n_in}, expected: {n_ex} → {n_run}개만 테스트')
+    cases = sorted(
+        [int(f.removesuffix('.in')) for f in os.listdir(tc_dir) if f.endswith('.in')],
+    )
+    if not cases:
+        print('tc/ 에 테스트케이스 없음 —스킵')
+        return
 
     passed = failed = 0
-    for i, (inp, exp) in enumerate(zip(inputs, expecteds), 1):
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.in') as f:
-            f.write((inp.strip() + '\n').encode('utf-8'))
-            tmp_in_path = f.name
-        tmp_out_path = tmp_in_path + '.out'
+    run_env = _build_env(env)
 
-        run_env = _build_env(env)
+    for n in cases:
+        in_path  = os.path.join(tc_dir, f'{n}.in')
+        out_path = os.path.join(tc_dir, f'{n}.out')
 
+        if not os.path.exists(out_path):
+            print(f'⚠ SKIP [케이스 {n}] — {n}.out 없음')
+            continue
+
+        with open(out_path, encoding='utf-8') as f:
+            expect = f.read().strip()
+
+        tmp_out = tempfile.mktemp(suffix='.out')
         try:
-            with open(tmp_in_path, 'rb') as sin, open(tmp_out_path, 'wb') as sout:
+            with open(in_path, 'rb') as sin, open(tmp_out, 'wb') as sout:
                 try:
                     proc = subprocess.run([binary], stdin=sin, stdout=sout,
                                           stderr=subprocess.DEVNULL, env=run_env,
                                           timeout=time_limit_sec, check=False)
                 except subprocess.TimeoutExpired:
-                    print(f'⏱ TLE [케이스 {i}] — {time_limit_sec}s 초과')
+                    print(f'⏱ TLE [케이스 {n}] — {time_limit_sec}s 초과')
                     failed += 1
                     continue
-            if os.path.exists(tmp_out_path):
-                with open(tmp_out_path, 'rb') as f:
+
+            if os.path.exists(tmp_out):
+                with open(tmp_out, 'rb') as f:
                     actual = f.read().decode('utf-8', errors='replace').replace('\r\n', '\n').strip()
             else:
                 actual = ''
         finally:
-            os.unlink(tmp_in_path)
-            if os.path.exists(tmp_out_path):
-                os.unlink(tmp_out_path)
-        expect = exp.strip()
+            if os.path.exists(tmp_out):
+                os.unlink(tmp_out)
 
         if proc.returncode != 0:
-            print(f'✗ FAIL [케이스 {i}] (exit code {proc.returncode})')
+            print(f'✗ FAIL [케이스 {n}] (exit code {proc.returncode}{_exit_code_name(proc.returncode)})')
             failed += 1
         elif actual == expect:
-            print(f'✓ PASS [케이스 {i}]')
+            print(f'✓ PASS [케이스 {n}]')
             passed += 1
         else:
-            print(f'✗ FAIL [케이스 {i}]')
+            print(f'✗ FAIL [케이스 {n}]')
             for line in _diff_lines(expect, actual):
                 print(f'  {line}')
             failed += 1
 
-    print(f'\n결과: {passed} passed, {failed} failed — {plat}/{prob}')
+    print(f'\n결과: {passed} passed, {failed} failed —{plat}/{prob}')
     sys.exit(0 if failed == 0 else 1)
 
 
@@ -330,8 +332,11 @@ def cmd_submit(plat: str, prob: str, message: str) -> None:
         commit_msg += f' - {message}'
 
     targets = [f'{rel_dir}/{f}' for f in
-               ('main.cpp', 'README.md', 'input.txt', 'expected.txt')
+               ('main.cpp', 'README.md', 'info.json')
                if os.path.exists(os.path.join(ROOT, rel_dir, f))]
+    tc_dir = os.path.join(ROOT, rel_dir, 'tc')
+    if os.path.isdir(tc_dir):
+        targets.append(f'{rel_dir}/tc')
     subprocess.run(['git', '-C', ROOT, 'add'] + targets, check=True)
     subprocess.run(['git', '-C', ROOT, 'commit', '-m', commit_msg], check=True, capture_output=True)
     subprocess.run(['git', '-C', ROOT, 'push'], check=True)
@@ -361,6 +366,52 @@ def cmd_review_commit(plat: str, prob: str) -> None:
     subprocess.run(['git', '-C', ROOT, 'add', os.path.join(rel_dir, 'README.md')], check=True)
     subprocess.run(['git', '-C', ROOT, 'commit', '-m', commit_msg], check=True, capture_output=True)
     print(f'Committed: {commit_msg}')
+
+
+# ── add-tc ───────────────────────────────────────────────────
+
+def _unescape(s: str) -> str:
+    r"""리터럴 \n · \t 를 실제 개행·탭으로 변환. 복붙 줄바꿈은 그대로 유지."""
+    return s.replace('\\n', '\n').replace('\\t', '\t')
+
+
+def _read_block(label: str) -> str:
+    """인터랙티브 입력. 빈 줄 입력 시 종료."""
+    print(f'[{label}] (빈 줄로 종료):')
+    lines = []
+    while True:
+        try:
+            line = input()
+        except EOFError:
+            break
+        if line == '':
+            break
+        lines.append(line)
+    return '\n'.join(lines)
+
+
+def cmd_add_tc(plat: str, prob: str, tc_in: str | None, tc_out: str | None) -> None:
+    tc_dir = os.path.join(ROOT, plat, prob, 'tc')
+    os.makedirs(tc_dir, exist_ok=True)
+
+    # 인터랙티브 모드
+    if tc_in is None or tc_out is None:
+        tc_in  = _read_block('예제 입력')
+        tc_out = _read_block('예제 출력')
+    else:
+        tc_in  = _unescape(tc_in)
+        tc_out = _unescape(tc_out)
+
+    # 다음 번호 결정
+    existing = [int(f.removesuffix('.in')) for f in os.listdir(tc_dir) if f.endswith('.in')]
+    n = max(existing, default=0) + 1
+
+    with open(os.path.join(tc_dir, f'{n}.in'), 'w', encoding='utf-8', newline='\n') as f:
+        f.write(tc_in if tc_in.endswith('\n') else tc_in + '\n')
+    with open(os.path.join(tc_dir, f'{n}.out'), 'w', encoding='utf-8', newline='\n') as f:
+        f.write(tc_out if tc_out.endswith('\n') else tc_out + '\n')
+
+    print(f'추가됨: {plat}/{prob}/tc/{n}.in · {n}.out')
 
 
 # ── clean ────────────────────────────────────────────────────
@@ -430,6 +481,12 @@ def main() -> None:
     p.add_argument('platform')
     p.add_argument('prob')
 
+    p = sub.add_parser('add-tc', help='테스트케이스 수동 추가')
+    p.add_argument('platform')
+    p.add_argument('prob')
+    p.add_argument('-in', dest='tc_in', default=None, help='예제 입력 (생략 시 인터랙티브)')
+    p.add_argument('-out', dest='tc_out', default=None, help='예제 출력 (생략 시 인터랙티브)')
+
     p = sub.add_parser('clean', help='미제출 문제 폴더 일괄 삭제')
     p.add_argument('platform', help='플랫폼 (예: BOJ)')
 
@@ -445,6 +502,7 @@ def main() -> None:
         'test':           lambda: cmd_test(args.platform, prob, env),
         'submit':         lambda: cmd_submit(args.platform, prob, args.message),
         'review-commit':  lambda: cmd_review_commit(args.platform, prob),
+        'add-tc':         lambda: cmd_add_tc(args.platform, prob, args.tc_in, args.tc_out),
         'clean':          lambda: cmd_clean(args.platform),
     }
     dispatch[args.command]()

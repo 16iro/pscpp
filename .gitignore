@@ -12,6 +12,9 @@ Makefile
 *.o
 *.obj
 
+# 테스트케이스 .out은 추적
+!**/tc/*.out
+
 # IDE
 .vscode/
 .idea/

@@ -36,7 +36,6 @@ def send_message(obj: dict) -> None:
 
 # ── 헬퍼 ─────────────────────────────────────────────────────
 
-SEP = '<<<PSCPP>>>'
 import re as _re
 
 def _parse_time_sec(time_str: str | None) -> float:
@@ -68,22 +67,21 @@ def _write_info(dest: str, msg: dict) -> None:
 
 def _write_samples(dest: str, samples: list):
     """
-    예제 입출력을 input.txt / expected.txt 에 SEP 구분자로 통합 저장.
-
-    케이스 수 불일치 처리:
-      - samples 는 이미 (input, output) 쌍으로 전달됨.
-      - 빈 input 또는 빈 output 을 가진 케이스는 저장하되 test.sh 에서 SKIP.
+    예제 입출력을 tc/N.in · tc/N.out 파일로 개별 저장.
+    기존 tc/ 디렉토리가 있으면 비우고 새로 작성한다.
     """
-    def join_cases(texts: list[str]) -> str:
-        return f'\n{SEP}\n'.join(t if t.endswith('\n') else t + '\n' for t in texts)
+    tc_dir = os.path.join(dest, 'tc')
+    if os.path.exists(tc_dir):
+        shutil.rmtree(tc_dir)
+    os.makedirs(tc_dir)
 
-    inputs  = [s.get('input',  '') for s in samples]
-    outputs = [s.get('output', '') for s in samples]
-
-    with open(os.path.join(dest, 'input.txt'),    'w', encoding='utf-8', newline='\n') as f:
-        f.write(join_cases(inputs)  if inputs  else '')
-    with open(os.path.join(dest, 'expected.txt'), 'w', encoding='utf-8', newline='\n') as f:
-        f.write(join_cases(outputs) if outputs else '')
+    for i, s in enumerate(samples, 1):
+        inp = s.get('input', '')
+        out = s.get('output', '')
+        with open(os.path.join(tc_dir, f'{i}.in'), 'w', encoding='utf-8', newline='\n') as f:
+            f.write(inp if inp.endswith('\n') else inp + '\n')
+        with open(os.path.join(tc_dir, f'{i}.out'), 'w', encoding='utf-8', newline='\n') as f:
+            f.write(out if out.endswith('\n') else out + '\n')
 
 
 # ── 액션 핸들러 ───────────────────────────────────────────────
