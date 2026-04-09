@@ -16,8 +16,8 @@ int BFS(int rn, int rm, int N, int M) {
         pair<int, int> pos = queue.front();
         queue.pop();
         for (int i = 0; i < 4; i++) {
-            int nx = clamp(pos.first + dx[i], 0, 0, N - 1);
-            int ny = clamp(pos.second + dy[i], 0, 0, M - 1);
+            int nx = clamp(pos.first + dx[i], 0, N - 1);
+            int ny = clamp(pos.second + dy[i], 0, M - 1);
             char cell = graph[nx][ny];
             if (cell == 'P') {
                 result++;
