@@ -66,14 +66,24 @@ COMPILER=gcc           # gcc (MSYS2/GCC) | msvc (Visual Studio)
 Windows / macOS / Linux 동일한 명령어 사용.
 
 ```bash
-python pscpp.py new            BOJ 1234              # 문제 폴더 생성
-python pscpp.py build          BOJ 1234              # 컴파일
-python pscpp.py test           BOJ 1234              # 예제 입출력 자동 검증
-python pscpp.py submit         BOJ 1234 "접근 방법"  # 제출 직전 커밋
+python pscpp.py setup                                       # 초기 설정 (.env + hooks + 스킬 빌드)
+python pscpp.py new            BOJ 1234                     # 문제 폴더 생성
+python pscpp.py build          BOJ 1234                     # 컴파일
+python pscpp.py test           BOJ 1234                     # 예제 입출력 자동 검증
+python pscpp.py save           BOJ 1234                     # 풀이 중간 저장 (WIP 커밋)
+python pscpp.py save           BOJ 1234 "BFS 구현중"         # WIP + 메모
+python pscpp.py submit         BOJ 1234 "접근 방법"          # 제출 직전 커밋 (attempt #N)
 python pscpp.py add-tc         BOJ 1234                     # 테스트케이스 추가 (인터랙티브)
 python pscpp.py add-tc         BOJ 1234 -in "1 2" -out "3"  # 테스트케이스 추가 (원라이너)
-python pscpp.py review-commit  BOJ 1234              # AI 코드 리뷰 결과 커밋
-python pscpp.py clean          BOJ                   # 미제출 문제 폴더 일괄 삭제
+python pscpp.py review-commit  BOJ 1234                     # AI 코드 리뷰 결과 커밋
+python pscpp.py clean          BOJ                          # 미제출 문제 폴더 일괄 삭제
+
+# AI 스킬 (Claude Code / Gemini CLI)
+/hint         BOJ 11724 progress                             # 진행도 힌트
+/hint         BOJ 11724 errline                              # 오류 라인 힌트
+/hint         BOJ 11724 errfunc                              # 오류 함수 힌트
+/hint         BOJ 11724 counter                              # 반례 제공
+/code-review  BOJ 11724                                      # 코드 리뷰 + README 첨삭
 ```
 
 ### 예제 파일 형식

@@ -358,6 +358,43 @@ def _diff_lines(expected: str, actual: str) -> list[str]:
     return out
 
 
+# ── save ─────────────────────────────────────────────────────
+
+def cmd_save(plat: str, prob: str, message: str) -> None:
+    rel_dir = f'{plat}/{prob}'
+
+    diff = subprocess.run(
+        ['git', '-C', ROOT, 'diff', '--quiet', 'HEAD', '--', rel_dir],
+        capture_output=True,
+    )
+    diff_cached = subprocess.run(
+        ['git', '-C', ROOT, 'diff', '--quiet', '--cached', 'HEAD', '--', rel_dir],
+        capture_output=True,
+    )
+    untracked = subprocess.run(
+        ['git', '-C', ROOT, 'ls-files', '--others', '--exclude-standard', '--', rel_dir],
+        capture_output=True, text=True, encoding='utf-8',
+    )
+    if diff.returncode == 0 and diff_cached.returncode == 0 and not untracked.stdout.strip():
+        print(f'변경사항 없음: {rel_dir}')
+        return
+
+    commit_msg = f'{plat}/{prob}: WIP'
+    if message:
+        commit_msg += f' - {message}'
+
+    targets = [f'{rel_dir}/{f}' for f in
+               ('main.cpp', 'README.md', 'info.json')
+               if os.path.exists(os.path.join(ROOT, rel_dir, f))]
+    tc_dir = os.path.join(ROOT, rel_dir, 'tc')
+    if os.path.isdir(tc_dir):
+        targets.append(f'{rel_dir}/tc')
+    subprocess.run(['git', '-C', ROOT, 'add'] + targets, check=True)
+    subprocess.run(['git', '-C', ROOT, 'commit', '-m', commit_msg], check=True, capture_output=True, encoding='utf-8')
+    subprocess.run(['git', '-C', ROOT, 'push'], check=True)
+    print(f'Committed & pushed: {commit_msg}')
+
+
 # ── submit ────────────────────────────────────────────────────
 
 def cmd_submit(plat: str, prob: str, message: str) -> None:
@@ -531,6 +568,11 @@ def main() -> None:
         p.add_argument('platform', help='플랫폼 (예: BOJ)')
         p.add_argument('prob',     help='문제 번호 (예: 1234)')
 
+    p = sub.add_parser('save', help='풀이 중간 저장 (WIP 커밋)')
+    p.add_argument('platform')
+    p.add_argument('prob')
+    p.add_argument('message', nargs='?', default='', help='커밋 메시지 suffix')
+
     p = sub.add_parser('submit', help='제출 직전 커밋')
     p.add_argument('platform')
     p.add_argument('prob')
@@ -559,6 +601,7 @@ def main() -> None:
         'new':            lambda: cmd_new(args.platform, prob),
         'build':          lambda: cmd_build(args.platform, prob, env),
         'test':           lambda: cmd_test(args.platform, prob, env),
+        'save':           lambda: cmd_save(args.platform, prob, args.message),
         'submit':         lambda: cmd_submit(args.platform, prob, args.message),
         'review-commit':  lambda: cmd_review_commit(args.platform, prob),
         'add-tc':         lambda: cmd_add_tc(args.platform, prob, args.tc_in, args.tc_out),
