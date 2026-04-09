@@ -373,7 +373,7 @@ def cmd_submit(plat: str, prob: str, message: str) -> None:
     )
     untracked = subprocess.run(
         ['git', '-C', ROOT, 'ls-files', '--others', '--exclude-standard', '--', rel_dir],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding='utf-8',
     )
     if diff.returncode == 0 and diff_cached.returncode == 0 and not untracked.stdout.strip():
         print(f'변경사항 없음: {rel_dir}')
@@ -381,7 +381,7 @@ def cmd_submit(plat: str, prob: str, message: str) -> None:
 
     log = subprocess.run(
         ['git', '-C', ROOT, 'log', '--oneline', '--', rel_dir],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding='utf-8',
     )
     attempt = len(log.stdout.strip().splitlines()) + 1
 
@@ -396,7 +396,7 @@ def cmd_submit(plat: str, prob: str, message: str) -> None:
     if os.path.isdir(tc_dir):
         targets.append(f'{rel_dir}/tc')
     subprocess.run(['git', '-C', ROOT, 'add'] + targets, check=True)
-    subprocess.run(['git', '-C', ROOT, 'commit', '-m', commit_msg], check=True, capture_output=True)
+    subprocess.run(['git', '-C', ROOT, 'commit', '-m', commit_msg], check=True, capture_output=True, encoding='utf-8')
     subprocess.run(['git', '-C', ROOT, 'push'], check=True)
     print(f'\nCommitted & pushed: {commit_msg}')
     print('→ BOJ에 직접 제출하세요.')
@@ -422,7 +422,7 @@ def cmd_review_commit(plat: str, prob: str) -> None:
 
     commit_msg = f'{plat}/{prob}: code review by AI'
     subprocess.run(['git', '-C', ROOT, 'add', os.path.join(rel_dir, 'README.md')], check=True)
-    subprocess.run(['git', '-C', ROOT, 'commit', '-m', commit_msg], check=True, capture_output=True)
+    subprocess.run(['git', '-C', ROOT, 'commit', '-m', commit_msg], check=True, capture_output=True, encoding='utf-8')
     print(f'Committed: {commit_msg}')
 
 
@@ -488,7 +488,7 @@ def cmd_clean(plat: str) -> None:
         rel_dir = f'{plat}/{name}'
         log = subprocess.run(
             ['git', '-C', ROOT, 'log', '--oneline', '--grep', 'attempt #', '--', rel_dir],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding='utf-8',
         )
         if not log.stdout.strip():
             targets.append((name, prob_dir))
