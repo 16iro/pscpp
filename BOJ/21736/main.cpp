@@ -7,7 +7,7 @@ char graph[600][600] = {
 int dx[4] = {0, 1, -1, 0};
 int dy[4] = {1, 0, 0, -1};
 
-int BFS(int rn, int rm) {
+int BFS(int rn, int rm, int N, int M) {
     int result = 0;
     queue<pair<int, int>> queue;
     queue.push(pair(rn, rm));
@@ -16,14 +16,16 @@ int BFS(int rn, int rm) {
         pair<int, int> pos = queue.front();
         queue.pop();
         for (int i = 0; i < 4; i++) {
-            char cell = graph[pos.first + dx[i]][pos.second + dy[i]];
+            int nx = clamp(pos.first + dx[i], 0, 0, N - 1);
+            int ny = clamp(pos.second + dy[i], 0, 0, M - 1);
+            char cell = graph[nx][ny];
             if (cell == 'P') {
                 result++;
                 cell = 'O';
             }
             if (cell == 'O') {
-                graph[pos.first + dx[i]][pos.second + dy[i]] = 'X';
-                queue.push(pair(pos.first + dx[i], pos.second + dy[i]));
+                graph[nx][ny] = 'X';
+                queue.push(pair(nx, ny));
             }
         }
     }
@@ -45,7 +47,7 @@ void solve() {
             graph[n][m] = row[m];
         }
     }
-    int count = BFS(rn, rm);
+    int count = BFS(rn, rm, N, M);
     if (count <= 0)
         cout << "TT";
     else
