@@ -1,7 +1,9 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-char graph[600][600];
+char graph[600][600] = {
+    'X',
+};
 int dx[4] = {0, 1, -1, 0};
 int dy[4] = {1, 0, 0, -1};
 
