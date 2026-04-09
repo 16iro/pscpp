@@ -1,7 +1,9 @@
 # BOJ {번호} — {제목}
 
-> **링크**: https://www.acmicpc.net/problem/{번호} **티어**: {solved.ac 티어}
-> **태그**: {태그1}, {태그2} **제출 횟수**: {N}회 만에 AC
+> **링크**: https://www.acmicpc.net/problem/{번호}
+> **티어**: {solved.ac 티어}
+> **태그**: {태그1}, {태그2}
+> **제출 횟수**: {N}회 만에 AC
 
 ---
 

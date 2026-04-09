@@ -423,7 +423,8 @@ def cmd_review_commit(plat: str, prob: str) -> None:
     commit_msg = f'{plat}/{prob}: code review by AI'
     subprocess.run(['git', '-C', ROOT, 'add', os.path.join(rel_dir, 'README.md')], check=True)
     subprocess.run(['git', '-C', ROOT, 'commit', '-m', commit_msg], check=True, capture_output=True, encoding='utf-8')
-    print(f'Committed: {commit_msg}')
+    subprocess.run(['git', '-C', ROOT, 'push'], check=True)
+    print(f'Committed & pushed: {commit_msg}')
 
 
 # ── add-tc ───────────────────────────────────────────────────

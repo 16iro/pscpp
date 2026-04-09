@@ -6,9 +6,9 @@ void solve() {
     int N;
     cin >> N;
     for (int a = 0; a <= N; a++) {
-        arr[a] = a < 2 ? 1 : arr[a - 1] + arr[a - 2];
+        arr[a] = a < 2 ? 1 : ((arr[a - 1] + arr[a - 2]) % 10007);
     }
-    cout << arr[N];
+    cout << (arr[N] % 10007);
 }
 
 int main() {

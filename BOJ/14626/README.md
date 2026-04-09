@@ -1,7 +1,9 @@
 # BOJ 14626 — ISBN
 
-> **링크**: https://www.acmicpc.net/problem/14626 **티어**: Bronze I **태그**:
-> 수학, 구현, 브루트포스 알고리즘, 사칙연산 **제출 횟수**: {N}회 만에 AC
+> **링크**: https://www.acmicpc.net/problem/14626
+> **티어**: Bronze I
+> **태그**: 수학, 구현, 브루트포스 알고리즘, 사칙연산
+> **제출 횟수**: {N}회 만에 AC
 
 ---
 

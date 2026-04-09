@@ -4,7 +4,11 @@
       "Bash(C:/msys64/mingw64/bin/g++ --version)",
       "Bash(C:/msys64/mingw64/bin/g++ -std=c++17 -v \"d:/.github/pscpp/BOJ/14626/main.cpp\" -o nul)",
       "Bash(C:/msys64/mingw64/bin/g++ -std=c++17 \"d:/.github/pscpp/BOJ/14626/main.cpp\" -o \"d:/tmp/test\")",
-      "Bash(python3 -c ':*)"
+      "Bash(python3 -c ':*)",
+      "Bash(python migrate_tc.py)",
+      "Bash(python pscpp.py test BOJ 11724)",
+      "Bash(python pscpp.py add-tc BOJ 11724 -in '3 1:*)",
+      "Bash(python pscpp.py setup)"
     ]
   }
 }
