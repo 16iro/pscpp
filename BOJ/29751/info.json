@@ -1,0 +1,17 @@
+{
+  "title": "삼각형",
+  "tier": "Bronze V",
+  "tags": [
+    "수학",
+    "기하학",
+    "사칙연산"
+  ],
+  "time_limit": "0.1 초",
+  "mem_limit": "1024 MB",
+  "time_limit_sec": 0.1,
+  "statement": {
+    "description": "양의 정수 \nW\n$W$, \nH\n$H$가 주어진다. 밑변의 길이가 \nW\n$W$이고, 높이가 \nH\n$H$인 삼각형의 넓이를 구하시오.",
+    "input": "정수 \nW\n$W$, \nH\n$H$가 공백으로 구분되어 주어진다. \n(1≤W,H≤100)\n$(1 \\le W, H \\le 100)$",
+    "output": "밑변의 길이가 \nW\n$W$이고, 높이가 \nH\n$H$인 삼각형의 넓이를 출력한다. 넓이는 항상 소수점 아래 첫 번째 자리까지 출력한다."
+  }
+}
